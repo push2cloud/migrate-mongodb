@@ -103,8 +103,13 @@ mongorestore --host ${to[host]} \
              --nsFrom=${from[database]}.* \
              --nsTo=${to[database]}.*
 
-echo ""
-echo "Finished MongoDB Migration with RC: $?"
+RC=$?
+echo "Finished mongodb Migration with RC: $?"
+if [[ ${RC} -eq 0 ]]; then
+ echo "MIGRATION SUCCESSFULL"
+else
+ echo "MIGRATION FAILED"
+fi
 
 while true ; do
   echo "This App can now be deleted"
