@@ -1,7 +1,7 @@
 {
-  "name": "migrate-redis",
+  "name": "migrate-mongodb",
   "version": "1.0.0",
-  "description": "migrate redis service instances with push2cloud",
+  "description": "migrate mongodb service instances with push2cloud",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
