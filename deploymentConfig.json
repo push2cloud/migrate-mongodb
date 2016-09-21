@@ -1,0 +1,17 @@
+{
+	"version": "1.0.0",
+	"target": {
+		"type": "cloudfoundry",
+		"api": "https://api.lyra-836.appcloud.swisscom.com",
+		"space": "__SPACE__",
+		"org": "__ORG__",
+		"delay": 500,
+		"maxRetries": 60
+	},
+	"services": [],
+	"apps": [],
+	"utilityApps": [],
+	"envVars": [],
+	"serviceBindings": [],
+	"routes": []
+}
