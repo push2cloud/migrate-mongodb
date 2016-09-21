@@ -127,6 +127,11 @@ const migrate = (deploymentConfig, api, log) =>
     , map(api.waitForServiceInstance, 'migration.newServices')
 
     , step(log('binding new services'))
+    , step((serviceBindings, cb) => cb(null, _.map(serviceBindings, (serviceBinding) => {
+      delete serviceBinding.serviceInstanceGuid
+      return serviceBinding
+    })), 'migration.oldServiceBindings', 'migration.oldServiceBindings')
+
     , map(api.bindService, 'migration.oldServiceBindings')
 
     , step(log('starting apps'))
