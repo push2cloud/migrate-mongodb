@@ -14,6 +14,7 @@ DEBUG=* ./node_modules/.bin/p2c exec ./workflow/migrate.js
 
 ## Details!
 The workflow performs the following steps for you:
+
 1. Create all the required Push2Cloud data structures
 2. Create new service instances (same plan is used)
 3. Create migration apps, configure via environment variables
