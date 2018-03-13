@@ -6,7 +6,7 @@
 		"space": "__SPACE__",
 		"org": "__ORG__",
 		"delay": 500,
-		"maxRetries": 60
+		"maxRetries": 120
 	},
 	"services": [],
 	"apps": [],
