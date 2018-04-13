@@ -25,6 +25,13 @@ The workflow performs the following steps for you:
 8. Renames new serivce instances to their proper name
 9. Starts all apps again
 
+## Using a different service
+By default, the migration will always use a service called `mongodb`. If the service is called differently, you can configure the names via environment variables:
+
+```
+OLD_SERVICE_TYPE_NAME=mongodb-2 NEW_SERVICE_TYPE_NAME=mongodb-2 DEBUG=* ./node_modules/.bin/p2c exec ./workflow/migrate.js
+```
+
 ## Migration app
 The migration application is a custom Docker image that runs `migrate.sh` on startup. The docker container must be configured via the two environment variables `fromService` and `toSerivice` (names of the CF service instances). `migrate.sh` performs a complete data migration between the configured services using `mongodb-dump` and the `mongo-restore`
 

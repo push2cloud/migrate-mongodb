@@ -3,6 +3,7 @@
 set -e
 set -o pipefail
 
+
 if [[ -n ${DEBUG} ]] ; then
   echo "DEBUG: VCAP_SERVICES:   ${VCAP_SERVICES}"
   echo "DEBUG: fromService:     ${fromService}"
@@ -26,27 +27,52 @@ fi
 declare -A  from
 declare -A  to
 
-from[database]=$( echo "${VCAP_SERVICES}" | jq ".mongodb[] | select( .name == \"${fromService}\" ) | .credentials.database" | tr -d '"')
-from[host]=$( echo "${VCAP_SERVICES}" | jq ".mongodb[] | select( .name == \"${fromService}\" ) | .credentials.host" | tr -d '"')
-from[password]=$( echo "${VCAP_SERVICES}" | jq ".mongodb[] | select( .name == \"${fromService}\" ) | .credentials.password" | tr -d '"')
-from[port]=$( echo "${VCAP_SERVICES}" | jq ".mongodb[] | select( .name == \"${fromService}\" ) | .credentials.port" | tr -d '"')
-from[username]=$( echo "${VCAP_SERVICES}" | jq ".mongodb[] | select( .name == \"${fromService}\" ) | .credentials.username" | tr -d '"')
+from[service_type_name]=${OLD_SERVICE_TYPE_NAME:-mongodb}
+to[service_type_name]=${NEW_SERVICE_TYPE_NAME:-mongodb}
 
-to[database]=$( echo "${VCAP_SERVICES}" | jq ".mongodb[] | select( .name == \"${toService}\" ) | .credentials.database" | tr -d '"')
-to[host]=$( echo "${VCAP_SERVICES}" | jq ".mongodb[] | select( .name == \"${toService}\" ) | .credentials.host" | tr -d '"')
-to[password]=$( echo "${VCAP_SERVICES}" | jq ".mongodb[] | select( .name == \"${toService}\" ) | .credentials.password" | tr -d '"')
-to[port]=$( echo "${VCAP_SERVICES}" | jq ".mongodb[] | select( .name == \"${toService}\" ) | .credentials.port" | tr -d '"')
-to[username]=$( echo "${VCAP_SERVICES}" | jq ".mongodb[] | select( .name == \"${toService}\" ) | .credentials.username" | tr -d '"')
+from[database]=$( echo "${VCAP_SERVICES}" | jq ".\"${from[service_type_name]}\"[] | select( .name == \"${fromService}\" ) | .credentials.database" | tr -d '"')
+from[rs]=$( echo "${VCAP_SERVICES}" | jq ".\"${from[service_type_name]}\"[] | select( .name == \"${fromService}\" ) | .credentials.replica_set" | tr -d '"')
+from[host]=$( echo "${VCAP_SERVICES}" | jq ".\"${from[service_type_name]}\"[] | select( .name == \"${fromService}\" ) | .credentials.host" | tr -d '"')
+from[port]=$( echo "${VCAP_SERVICES}" | jq ".\"${from[service_type_name]}\"[] | select( .name == \"${fromService}\" ) | .credentials.port" | tr -d '"')
+from[password]=$( echo "${VCAP_SERVICES}" | jq ".\"${from[service_type_name]}\"[] | select( .name == \"${fromService}\" ) | .credentials.password" | tr -d '"')
+from[username]=$( echo "${VCAP_SERVICES}" | jq ".\"${from[service_type_name]}\"[] | select( .name == \"${fromService}\" ) | .credentials.username" | tr -d '"')
+
+if [[ ${from[rs]} != 'null' ]]; then
+  from[uri]=$( echo "${VCAP_SERVICES}" | jq ".\"${from[service_type_name]}\"[] | select( .name == \"${fromService}\" ) | .credentials.uri" | tr -d '"')
+  _new_host="${from[rs]}/$( echo "${from[uri]}" | cut -d'@' -f2 | cut -d'/' -f1  )"
+  from[host]=${_new_host}
+else
+  from[port_line]="--port ${from[port]}"
+fi
+
+to[database]=$( echo "${VCAP_SERVICES}" | jq ".\"${to[service_type_name]}\"[] | select( .name == \"${toService}\" ) | .credentials.database" | tr -d '"')
+to[rs]=$( echo "${VCAP_SERVICES}" | jq ".\"${to[service_type_name]}\"[] | select( .name == \"${toService}\" ) | .credentials.replica_set" | tr -d '"')
+to[host]=$( echo "${VCAP_SERVICES}" | jq ".\"${to[service_type_name]}\"[] | select( .name == \"${toService}\" ) | .credentials.host" | tr -d '"')
+to[port]=$( echo "${VCAP_SERVICES}" | jq ".\"${to[service_type_name]}\"[] | select( .name == \"${toService}\" ) | .credentials.port" | tr -d '"')
+to[password]=$( echo "${VCAP_SERVICES}" | jq ".\"${to[service_type_name]}\"[] | select( .name == \"${toService}\" ) | .credentials.password" | tr -d '"')
+to[username]=$( echo "${VCAP_SERVICES}" | jq ".\"${to[service_type_name]}\"[] | select( .name == \"${toService}\" ) | .credentials.username" | tr -d '"')
+
+if [[ ${to[rs]} != 'null' ]]; then
+  to[uri]=$( echo "${VCAP_SERVICES}" | jq ".\"${to[service_type_name]}\"[] | select( .name == \"${toService}\" ) | .credentials.uri" | tr -d '"')
+  _new_host="${to[rs]}/$( echo "${to[uri]}" | cut -d'@' -f2 | cut -d'/' -f1  )"
+  to[host]=${_new_host}
+else
+  to[port_line]="--port ${to[port]}"
+fi
 
 if [[ -n ${DEBUG} ]] ; then
   echo "DEBUG: from[database]: ${from[database]}"
   echo "DEBUG: from[host]:     ${from[host]}"
+  echo "DEBUG: from[rs]:     ${from[rs]}"
+  echo "DEBUG: from[uri]:     ${from[uri]}"
   echo "DEBUG: from[password]: ${from[password]}"
   echo "DEBUG: from[port]:     ${from[port]}"
   echo "DEBUG: from[username]: ${from[username]}"
 
   echo "DEBUG: to[database]: ${to[database]}"
   echo "DEBUG: to[host]:     ${to[host]}"
+  echo "DEBUG: to[rs]:     ${to[rs]}"
+  echo "DEBUG: to[uri]:     ${to[uri]}"
   echo "DEBUG: to[password]: ${to[password]}"
   echo "DEBUG: to[port]:     ${to[port]}"
   echo "DEBUG: to[username]: ${to[username]}"
@@ -67,18 +93,19 @@ echo "  from: ${fromService}"
 echo "  to:   ${toService}"
 echo ""
 
+
 if [[ -n ${DEBUG} ]] ; then
 echo "Going to execute the following command:
 mongodump    --host ${from[host]} \
              --db ${from[database]} \
-             --port ${from[port]} \
+             ${from[port_line]} \
              --authenticationDatabase ${from[database]} \
              --username ${from[username]} \
              --password ${from[password]} \
              --archive | \
 mongorestore --host ${to[host]} \
-             --port ${from[port]} \
-             --authenticationDatabase ${from[database]} \
+             ${to[port_line]} \
+             --authenticationDatabase ${to[database]} \
              --username ${to[username]} \
              --password ${to[password]} \
              --archive \
@@ -86,23 +113,21 @@ mongorestore --host ${to[host]} \
              --nsTo=${to[database]}.*
 "
 fi
-
 mongodump    --host ${from[host]} \
              --db ${from[database]} \
-             --port ${from[port]} \
+             ${from[port_line]} \
              --authenticationDatabase ${from[database]} \
              --username ${from[username]} \
              --password ${from[password]} \
              --archive | \
 mongorestore --host ${to[host]} \
-             --port ${to[port]} \
+             ${to[port_line]} \
              --authenticationDatabase ${to[database]} \
              --username ${to[username]} \
              --password ${to[password]} \
              --archive \
              --nsFrom=${from[database]}.* \
              --nsTo=${to[database]}.*
-
 RC=$?
 echo "Finished mongodb Migration with RC: $?"
 if [[ ${RC} -eq 0 ]]; then
