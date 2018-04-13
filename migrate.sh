@@ -105,7 +105,7 @@ mongodump    --host ${from[host]} \
              --archive | \
 mongorestore --host ${to[host]} \
              ${to[port_line]} \
-             --authenticationDatabase ${from[database]} \
+             --authenticationDatabase ${to[database]} \
              --username ${to[username]} \
              --password ${to[password]} \
              --archive \
@@ -113,23 +113,21 @@ mongorestore --host ${to[host]} \
              --nsTo=${to[database]}.*
 "
 fi
-
 mongodump    --host ${from[host]} \
              --db ${from[database]} \
-             --port ${from[port]} \
+             ${from[port_line]} \
              --authenticationDatabase ${from[database]} \
              --username ${from[username]} \
              --password ${from[password]} \
              --archive | \
 mongorestore --host ${to[host]} \
-             --port ${to[port]} \
+             ${to[port_line]} \
              --authenticationDatabase ${to[database]} \
              --username ${to[username]} \
              --password ${to[password]} \
              --archive \
              --nsFrom=${from[database]}.* \
              --nsTo=${to[database]}.*
-
 RC=$?
 echo "Finished mongodb Migration with RC: $?"
 if [[ ${RC} -eq 0 ]]; then
