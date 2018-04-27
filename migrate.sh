@@ -96,6 +96,10 @@ echo ""
 
 if [[ -n ${DEBUG} ]] ; then
 echo "Going to execute the following command:
+
+mongo ${to[uri]} \
+      --eval 'db.dropDatabase()'
+
 mongodump    --host ${from[host]} \
              --db ${from[database]} \
              ${from[port_line]} \
@@ -113,6 +117,10 @@ mongorestore --host ${to[host]} \
              --nsTo=${to[database]}.*
 "
 fi
+
+mongo ${to[uri]} \
+      --eval 'db.dropDatabase()'
+
 mongodump    --host ${from[host]} \
              --db ${from[database]} \
              ${from[port_line]} \
@@ -128,12 +136,34 @@ mongorestore --host ${to[host]} \
              --archive \
              --nsFrom=${from[database]}.* \
              --nsTo=${to[database]}.*
+
+
+
+sourceDb="$(mongo ${from[database]} --host ${from[host]} \
+      ${from[port_line]} \
+      --authenticationDatabase ${from[database]} \
+      --username ${from[username]} \
+      --password ${from[password]} \
+      --eval 'db.getCollectionNames().reduce(function(acc, c) { if (c.indexOf("system.") == -1) { return acc + db[c].count(); } return acc }, 0)' \
+      --quiet)"
+
+targetDb="$(mongo ${to[uri]} \
+  --eval 'db.getCollectionNames().reduce(function(acc, c) { if (c.indexOf("system.") == -1) { return acc + db[c].count(); } return acc }, 0)' \
+  --quiet | grep -e '^[0-9][0-9]*$')"
+
+
+dbsizesame=0
+
+if [ "$sourceDb" != "$targetDb" ]; then
+  dbsizesame=1
+fi
+
 RC=$?
-echo "Finished mongodb Migration with RC: $?"
-if [[ ${RC} -eq 0 ]]; then
- echo "MIGRATION SUCCESSFULL"
+echo "Finished redis Migration with RC: $?"
+if [[ ${RC} -eq 0 && ${dbsizesame} -eq 0 ]]; then
+  echo "MIGRATION SUCCESSFULL"
 else
- echo "MIGRATION FAILED"
+  echo "MIGRATION FAILED"
 fi
 
 while true ; do

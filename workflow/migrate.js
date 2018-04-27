@@ -15,7 +15,7 @@ const migrate = (deploymentConfig, api, log) =>
 
     , step(log('preparing local data structures'))
     , step(
-      (services, cb) => cb(null, _.filter(services, (service) => service.type === (process.env.OLD_SERVICE_TYPE_NAME || 'mongodb')))
+      (services, cb) => cb(null, _.filter(services, (service) => (service.type === (process.env.OLD_SERVICE_TYPE_NAME || 'mongodb'))))
       , 'current.services'
       , 'migration.oldServices')
 
@@ -47,9 +47,9 @@ const migrate = (deploymentConfig, api, log) =>
         return {
           name: `migrate-${service.name}`,
           disk: '512M',
-          memory: '256M',
+          memory: '2048M',
           instances: 1,
-          health_check_type: 'none',
+          healthCheckType: 'process',
           diego: true,
           enable_ssh: true,
           dockerImage: 'push2cloud/migrate-mongodb:1.1.0',
@@ -58,7 +58,8 @@ const migrate = (deploymentConfig, api, log) =>
           ],
           failMessages: [
             'MIGRATION FAILED'
-          ]
+          ],
+          startTimeout: 3600
         };
       }));
     }, 'migration.oldServices', 'migration.apps')
@@ -72,6 +73,7 @@ const migrate = (deploymentConfig, api, log) =>
             toService: `${service.name}-new`,
             "OLD_SERVICE_TYPE_NAME": process.env.OLD_SERVICE_TYPE_NAME || 'mongodb',
             "NEW_SERVICE_TYPE_NAME": process.env.NEW_SERVICE_TYPE_NAME || 'mongodb',
+            "DEBUG": 'true'
           }
         };
       }));
