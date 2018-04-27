@@ -49,9 +49,9 @@ const migrate = (deploymentConfig, api, log) =>
           disk: '512M',
           memory: '256M',
           instances: 1,
-          health_check_type: 'none',
+          healthCheckType: 'process',
           diego: true,
-          enable_ssh: true,
+          enableSSH: true,
           dockerImage: 'push2cloud/migrate-mongodb:1.1.0',
           messages: [
             'MIGRATION SUCCESSFULL'
